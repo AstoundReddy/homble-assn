@@ -12,7 +12,11 @@ export const useProductAPI = (id) => {
     setgetLoading(true);
     try {
       const response = await getRequest("/products");
-      setProducts(response.data);
+      let data = response.data;
+      data = data.sort((a, b) => {
+        return a.selling_price - b.selling_price;
+      });
+      setProducts(data);
     } catch (error) {
       if (error?.message) showToast(error.message);
       else showToast("Something went wrong");
