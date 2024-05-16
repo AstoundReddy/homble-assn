@@ -1,10 +1,14 @@
+import { ToastContainer } from "react-toastify";
 import "./App.css";
 import AppRouter from "./AppRouter";
+import { ToastProvider } from "./context/ToastProvider";
 
 function App() {
   return (
     <div className="App">
-      <AppRouter />
+      <ToastProvider>
+        <AppRouter />
+      </ToastProvider>
     </div>
   );
 }
