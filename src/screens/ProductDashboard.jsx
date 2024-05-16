@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Container, Table } from "react-bootstrap";
 import { useDashboardApi } from "../hooks/useDashboardApi";
 import sort from "../assets/svgs/sort.svg";
@@ -6,48 +6,42 @@ import loadingsvg from "../assets/svgs/loading.svg";
 function ProductDashboard() {
   const { data, loading } = useDashboardApi();
   const [sortField, setSortField] = useState(null);
+  const [sortDirection, setSortDirection] = useState(-1);
   const [searchText, setSearchText] = useState("");
-  const [sortedData, setSortedData] = useState(data);
-  const [searchResults, setSearchResults] = useState(data);
+  const [filteredData, setFilteredData] = useState(data);
   useEffect(() => {
-    setSortedData(data);
-    setSearchResults(data);
+    setFilteredData(data);
   }, [data]);
 
-  const requestSort = (field) => {
-    console.log("sorted");
-    let sorted = sortedData;
-    let search = searchResults;
+  const handleSort = (field) => {
     if (sortField === field) {
-      setSortedData(sorted.toReversed());
+      setSortDirection(sortDirection * -1);
     } else {
-      sorted.sort((a, b) => {
-        const aValue = field === "name" ? a[field] : parseInt(a[field]);
-        const bValue = field === "name" ? b[field] : parseInt(b[field]);
-        if (aValue < bValue) return 1;
-        if (aValue > bValue) return -1;
-        return 0;
-      });
-      search.sort((a, b) => {
-        const aValue = field === "name" ? a[field] : parseInt(a[field]);
-        const bValue = field === "name" ? b[field] : parseInt(b[field]);
-        if (aValue < bValue) return 1;
-        if (aValue > bValue) return -1;
-        return 0;
-      });
-      setSearchResults(search);
-      setSortedData(sorted);
       setSortField(field);
+      setSortDirection(1);
     }
   };
   const removeItem = (id) => {
-    setSortedData(sortedData.filter((product) => product.id !== id));
+    setFilteredData(filteredData.filter((product) => product.id !== id));
   };
-  useEffect(() => {
-    console.log("new search results");
-    const results = sortedData.filter((product) => product.name.toLowerCase().includes(searchText.toLowerCase()) || product.id.toString().includes(searchText));
-    setSearchResults(results);
-  }, [searchText, sortedData]);
+  const filteredAndSortedData = useMemo(() => {
+    const filtered = filteredData.filter((product) => {
+      return product.name.toLowerCase().includes(searchText.toLowerCase()) || product.id.toString().includes(searchText);
+    });
+
+    if (sortField) {
+      return filtered.sort((a, b) => {
+        let aval = sortField === "name" ? a[sortField] : parseInt(a[sortField]);
+        let bval = sortField === "name" ? b[sortField] : parseInt(b[sortField]);
+        if (aval > bval) {
+          return sortDirection;
+        } else if (aval < bval) {
+          return -sortDirection;
+        } else return 0;
+      });
+    }
+    return filtered;
+  }, [filteredData, searchText, sortField, sortDirection]);
   return (
     <div>
       {loading && (
@@ -63,17 +57,17 @@ function ProductDashboard() {
           <thead>
             <tr>
               <th></th>
-              <th onClick={() => requestSort("id")}>ID {<img alt="sort-icon" style={{ cursor: "pointer" }} src={sort} />}</th>
-              <th onClick={() => requestSort("name")}>Name {<img alt="sort-icon" style={{ cursor: "pointer" }} src={sort} />}</th>
-              <th onClick={() => requestSort("cost_price")}>Cost Price {<img alt="sort-icon" style={{ cursor: "pointer" }} src={sort} />}</th>
-              <th onClick={() => requestSort("selling_price")}>Selling Price {<img alt="sort-icon" style={{ cursor: "pointer" }} src={sort} />}</th>
+              <th onClick={() => handleSort("id")}>ID {<img alt="sort-icon" style={{ cursor: "pointer" }} src={sort} />}</th>
+              <th onClick={() => handleSort("name")}>Name {<img alt="sort-icon" style={{ cursor: "pointer" }} src={sort} />}</th>
+              <th onClick={() => handleSort("cost_price")}>Cost Price {<img alt="sort-icon" style={{ cursor: "pointer" }} src={sort} />}</th>
+              <th onClick={() => handleSort("selling_price")}>Selling Price {<img alt="sort-icon" style={{ cursor: "pointer" }} src={sort} />}</th>
               <th>Description</th>
               <th>Allergen Info</th>
               <th>Usage Instructions</th>
             </tr>
           </thead>
           <tbody>
-            {searchResults.map((product) => (
+            {filteredAndSortedData.map((product) => (
               <tr key={product.id}>
                 <td>
                   <input type="checkbox" onClick={() => removeItem(product.id)} />
